@@ -21,20 +21,21 @@ docker network create --subnet='desired-ip'/'desired-mask' 'network-name'
 
 ### 2. Construir as imagens Docker
 
-Construa as imagens Docker para o aplicativo e o proxy usando os comandos abaixo:
+Construa as imagens Docker para o aplicativo e o proxy nos respectivos diretórios usando os comandos abaixo:
 
 ```bash
-   docker network create --subnet='desired-ip'/'desired-mask' 'network-name'
+   docker build -t app_p2p .
+   docker build -t proxy_p2p .
 ```
 
 ### 3. Executar os containers
 
-Executar o container do Proxy. Substitua `'desired-ip'` pelo IP desejado dentro da rede Docker:
+Executar o container do Proxy. Substitua `'network-name'` pela rede docker criada e `'desired-ip'` pelo IP desejado dentro da rede Docker:
 
 ```bash
    docker run -it --rm --network 'network-name' --ip 'desired-ip' proxy_p2p
 ```
-Executar o container do Aplicativo. Substitua `'desired-ip'` pelo IP desejado dentro da rede Docker:
+Executar o container do Aplicativo. Substitua `'network-name'` pela rede docker criada e `'desired-ip'` pelo IP desejado dentro da rede Docker:
 
 ```bash
    docker run -it --rm --network 'network-name' --ip 'desired-ip' app_p2p
