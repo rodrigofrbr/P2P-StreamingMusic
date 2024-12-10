@@ -4,8 +4,7 @@ import threading
 from models.client import Client
 from models.file import File
 
-
-class MainServer:
+class Proxy:
     def __init__(self, address: str, port : int, clients : list[Client]):
         self.address = address
         self.port = port
@@ -54,11 +53,7 @@ class MainServer:
             current_client = self.handle_client(new_client)
         else:
             client_socket.send(json.dumps(is_not_registered).encode())
-
         
-        client_socket.send(f"Bem vindo, {current_client.name}".encode())
-        
-
         while True:
             request = json.loads(client_socket.recv(1024).decode())
 
@@ -77,5 +72,9 @@ class MainServer:
                 current_client.is_connected = False
                 client_socket.send("Conexão encerrada.".encode())
                 client_socket.close()
+                print(f"Cliente {current_client.name}, endereço: {current_client.address} desconectado!")
                 return
+
+server = Proxy("0.0.0.0", 4200, [])
+server.start()
 

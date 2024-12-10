@@ -3,9 +3,13 @@ import socket
 from models.client import Client
 from models.file import File
 
+from tabulate import tabulate
+
 def start_client():
+    action = input("Escreva o par exclusivo 'IP:porta' para acessar o proxy: ")
+    ip_adress, port = [action.split(':')[0], action.split(':')[1]]
     _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    _socket.connect(('localhost', 4200))  # Conectar ao servidor
+    _socket.connect((ip_adress, int(port)))  
 
     is_not_registered : bool = json.loads(_socket.recv(1024).decode())
 
@@ -17,8 +21,8 @@ def start_client():
         
         new_client = Client.to_json(new_client_data)
         _socket.send(json.dumps(new_client).encode())
-
-    print(_socket.recv(1024).decode())
+    else:
+        print("Cliente registrado.")
 
     while True:
         action = input("Digite 'LISTA' para ver os arquivos, 'ADD_FILE' para adicionar arquivos ou 'FIM' para encerrar: ")
@@ -28,12 +32,17 @@ def start_client():
             
             client_list_data = json.loads(_socket.recv(1024).decode())
             client_list = [Client.from_json(client_data) for client_data in client_list_data]
-            print(client_list)
-            
+
             for client in client_list:
-                print(f"Cliente de nome: '{client.name}' e endereço: {client.address[0]}:{client.address[1]}")
-                for client_file in client.files:
-                    print(f"Nome do arquivo:'{client_file.name}' e Caminho do arquivo: '{client_file.path}'")
+                print()
+                print(f"Cliente: {client.name}, Endereço: {client.address[0]}:{client.address[1]}")
+                client_table = [
+                    ["Nome do Arquivo", "Caminho do Arquivo"]
+                ] + [
+                    [client_file.name, client_file.path] for client_file in client.files
+                ]
+                print(tabulate(client_table, headers="firstrow", tablefmt="grid"))
+                print()
             
         elif action == "ADD_FILE":
             file_name = input("Informe o nome do arquivo: ")

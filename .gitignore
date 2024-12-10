@@ -1,5 +1,6 @@
 __pycache__/
-
+application/__pycache__/
+application/models/__pycache__/
+server/__pycache__/
+server/models/__pycache__/
 README.md
-
-models/__pycache__/
