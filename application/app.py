@@ -5,6 +5,8 @@ from tabulate import tabulate
 from models.client import Client
 from models.file import File
 import wave
+import sys
+import select
 
 def client_service():
     action = input("Escreva o par exclusivo 'IP:porta' para acessar o proxy: ")
@@ -62,33 +64,51 @@ def client_service():
             print("Recebendo áudio e enviando para agente...")
 
             try:
+                animation = ["   ", ".  ", ".. ", "..."]
+                frame_index = 0
+
                 while True:
+                    # Verifica se o usuário digitou "PARAR"
+                    if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                        user_input = sys.stdin.readline().strip()
+                        if user_input.upper() == "S":
+                            udp_socket_client.sendto(b"S", (ip_peer, 4201))
+                            print("\nConexão encerrada pelo usuário.")
+                            break
+
                     # Recebe os dados de áudio em blocos
                     data, _ = udp_socket_client.recvfrom(1024)
-                    print("Recebendo e processando stream para agente de áudio...")
+
+                    sys.stdout.write(f"\rRecebendo e processando stream para agente de áudio{animation[frame_index]}")
+                    sys.stdout.flush()
+                    frame_index = (frame_index + 1) % len(animation)
+                    
                     if data == b"END_OF_FILE":
+                        print("\nStream de áudio concluído com sucesso.")
                         break
 
                     # Especificamente para tratar a execucao em tempo real no docker
                     udp_socket_send.sendto(data, ('host.docker.internal', 4200))
 
                     try:
-                        ack, _ = udp_socket_send.recvfrom(1024)
-                        if ack != b"ACK":
+                        ctrl, _ = udp_socket_send.recvfrom(1024)
+                        if ctrl != b"CTRL":
                             udp_socket_send.sendto(data, ('host.docker.internal', 4200))
                             continue
-                    except socket.timeout:
-                        print("Timeout aguardando ACK. Reenviando pacote.")
+                    except:
                         udp_socket_send.sendto(data, ('host.docker.internal', 4200))
 
-                    udp_socket_client.sendto(b"ACK", (ip_peer, 4201))
+                    udp_socket_client.sendto(b"CTRL", (ip_peer, 4201))
 
             except Exception as e:
                 print(f"Ocorreu um erro ao receber o arquivo '{file_name_peer}': {e}")
 
-            udp_socket_client.close()
-            udp_socket_send.close()
-            print("Stream de áudio concluído.")
+            finally:
+                # Sempre fecha os sockets, independentemente de como o loop terminou
+                udp_socket_client.close()
+                udp_socket_send.close()
+                print("Conexão encerrada.")
+
 
         elif action == "FIM":
             print("Encerrando conexão...")
@@ -133,12 +153,13 @@ def handle_udp_conn(data, client_address):
                 udp_socket_server_file.sendto(chunk, client_address)
 
                 try:
-                    ack, _ = udp_socket_server_file.recvfrom(1024)
-                    if ack != b"ACK":
+                    ctrl, _ = udp_socket_server_file.recvfrom(1024)
+                    if ctrl == b"S":
+                        break
+                    if ctrl != b"CTRL":
                         udp_socket_server_file.sendto(chunk, client_address)
                         continue
-                except socket.timeout:
-                    print("Timeout aguardando ACK. Reenviando pacote.")
+                except:
                     udp_socket_server_file.sendto(chunk, client_address)
             
     except Exception as e:

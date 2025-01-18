@@ -34,7 +34,7 @@ while True:
     # Reproduzir o áudio assim que os dados são recebidos
     stream.write(data)
 
-    udp_socket_server.sendto(b"ACK", client_address)
+    udp_socket_server.sendto(b"CTRL", client_address)
 
 
 # Finalizar o stream de áudio e fechar o PyAudio
